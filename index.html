@@ -89,40 +89,43 @@ function alternarPorta(event, nomePorta, tipo) {
     btn.style.background = "var(--text-muted)";
     btn.style.pointerEvents = "none";
 
-    // Se houver um timer de fechamento automático rodando, nós o cancelamos
+    // Cancela o fechamento automático se o morador clicar no botão antes dos 10s
     if (temporizadoresPortas[nomePorta]) {
         clearTimeout(temporizadoresPortas[nomePorta]);
     }
 
     setTimeout(() => {
         if (estadoAtual === 'fechado') {
+            // Lógica de ABERTURA
             adicionarRegistro(`<strong>${nomePorta}</strong>`, "Abertura Remota", "abrir");
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Aberto!';
             btn.style.background = "var(--success)";
-            mostrarToast("Comando enviado: Porta aberta.");
+            mostrarToast(`Comando enviado: ${nomePorta} aberta.`);
             
             setTimeout(() => {
                 estadoDasPortas[nomePorta] = 'aberto';
-                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Fechar o ' + tipo;
+                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Fechar ' + tipo;
                 btn.style.background = "var(--danger)";
                 btn.style.pointerEvents = "auto";
                 
-                // --- INÍCIO DA LÓGICA DE FECHAMENTO AUTOMÁTICO ---
-                temporizadoresPortas[nomePorta] = setTimeout(() => {
-                    fecharPortaAutomaticamente(btn, nomePorta, tipo);
-                }, 10000); // 10000 ms = 10 segundos
-                // --- FIM DA LÓGICA ---
-
+                // INÍCIO DA REGRA: Fechamento automático SOMENTE para a porta da casa
+                if (nomePorta === 'Porta do Apartamento') {
+                    temporizadoresPortas[nomePorta] = setTimeout(() => {
+                        fecharPortaAutomaticamente(btn, nomePorta, tipo);
+                    }, 10000); // 10 segundos
+                }
+                
             }, 1000);
         } else {
+            // Lógica de FECHAMENTO MANUAL
             adicionarRegistro(`<strong>${nomePorta}</strong>`, "Fechamento Remoto", "fechar");
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Fechado!';
             btn.style.background = "var(--success)";
-            mostrarToast("Comando enviado: Porta fechada.");
+            mostrarToast(`Comando enviado: ${nomePorta} fechada.`);
             
             setTimeout(() => {
                 estadoDasPortas[nomePorta] = 'fechado';
-                btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Abrir o ' + tipo;
+                btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Abrir ' + tipo;
                 btn.style.background = ""; 
                 btn.style.pointerEvents = "auto";
             }, 1000);
@@ -130,23 +133,28 @@ function alternarPorta(event, nomePorta, tipo) {
     }, 800);
 }
 
-// ----- FUNÇÃO DE FECHAMENTO AUTOMÁTICO -----
+// ----- FUNÇÃO DE FECHAMENTO AUTOMÁTICO (CHAMADA PELO TEMPORIZADOR) -----
 function fecharPortaAutomaticamente(btn, nomePorta, tipo) {
-    // Verifica se a porta ainda está aberta
     if (estadoDasPortas[nomePorta] === 'aberto') {
-        adicionarRegistro(`<strong>${nomePorta}</strong>`, "Fechamento Automático", "fechar");
-        
+        // Trava o botão visualmente enquanto processa o fechamento automático
         btn.style.pointerEvents = "none";
-        btn.innerHTML = '<i class="fa-solid fa-check"></i> Fechado Auto!';
-        btn.style.background = "var(--success)";
-        mostrarToast(`Sistema: O ${nomePorta} foi fechado automaticamente.`);
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fechando auto...';
+        btn.style.background = "var(--text-muted)";
 
         setTimeout(() => {
-            estadoDasPortas[nomePorta] = 'fechado';
-            btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Abrir o ' + tipo;
-            btn.style.background = ""; 
-            btn.style.pointerEvents = "auto";
-        }, 1000);
+            adicionarRegistro(`<strong>${nomePorta}</strong>`, "Fechamento Auto (10s)", "fechar");
+            
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Fechado!';
+            btn.style.background = "var(--success)";
+            mostrarToast(`Sistema: ${nomePorta} fechou automaticamente.`);
+
+            setTimeout(() => {
+                estadoDasPortas[nomePorta] = 'fechado';
+                btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Abrir ' + tipo;
+                btn.style.background = ""; // Volta para a cor original (azul)
+                btn.style.pointerEvents = "auto";
+            }, 1500); // Exibe o status de sucesso por 1.5s antes de resetar o botão
+        }, 800); // Simula o tempo de processamento do comando (0.8s)
     }
 }
 
